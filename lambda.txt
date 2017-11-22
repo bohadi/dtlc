@@ -1,0 +1,145 @@
+lambda calculus
+
+λ-abstraction (binding variables)
+    \x.x
+α-conversion (renaming variables)
+    \x.\y.x+y+1 ->
+    \a.\y.a+y+1
+β-reduction  (argument application by substitution)
+    (\a.\y.a+y+1)(1) ->
+    \y.a+y+1[a:=1]   ->
+    \y.1+y+1
+η-conversion
+
+type Sym = String
+data Exp =
+      Var Sym
+    | App Exp Exp
+    | Lam Sym Exp
+    deriving (Eq, Read, Show)
+
+we want to evaluate a given expression
+β-redux occurs anywhere a fn meets an argument, recall
+    (\x.e)a reduces to e[x:=a] (application, or 'redex')
+weak head normal form
+    from AST root, along App left branch, do all redex
+lazy eval
+    do not evaluate anything inside argument before doing redex
+
+both whnf and nf may fail to terminate because not all expressions have nf
+consider
+
+(\x.x x)(\x.x x) ->
+(\x.x x)(\x.x x)
+
+but, if an expression has a normal form it is unique
+
+zero:
+\s.\z.z
+one:
+\s.\z.s z
+two:
+\s.\z.s (s z)
+plus:
+\m.\n.\s.\z.m s (n s z)
+
+simply typed lambda calculus
+(\x:(B->B).\y:B.x)(\z:B.z)
+
+a problem arises with the identity function
+\x.x
+what should its type be?
+\x:B.x
+\x:B->B.x
+\x:B->B->B.x
+are all valid; we need an identity function for each type, this is a pain
+
+polymorphic lambda calculus
+\x:t.e /\a:k.e e[t]
+/\a:k.e is a type abstraction
+a is a type variable used in type expressions in e
+e[t] is type application
+so our available types are base type, functions, and type variables
+k in /\a:k.e are kinds, a type system for types
+the identity would then be
+/\a:*.\x:a.x
+this is System Fω
+
+allowedKinds :: [(Type, Type)]
+allowedKinds =
+    [ (Kind Star, Kind Star)  -- 0 values depend on values
+    , (Kind Star, Kind Box )  -- 1 types  depend on values
+    , (Kind Box , Kind Star)  -- 2 values depend on types
+    , (Kind Box , Kind Box )] -- 4 types  depend on types
+-- lambda cube
+-- 0    0 simply typed lambda calculus
+-- 01   1 dependent types
+-- 0 2  2 system F
+-- 012  3
+-- 0  4 4
+-- 01 4 5
+-- 0 24 6 system Fω
+-- 0124 7 calculus of constructions
+
+combinators
+
+lambdas allow terms:
+variable     x
+application  e a
+abstraction  x e
+
+combinatory calculus provides a basis set of primitives in place of abs
+variable     x
+application  e a
+primitive    P
+
+primitives are combinators, lambda terms which contain no free variables
+two common bases sets are SK (or SKI), and BC (or BCKW)
+
+K ≡ \xy.x
+S ≡ \xyz.((xz)(yz))
+
+I ≡ \x.x
+
+I   == SK K    extensionally
+I x == SK K x  intensionally
+
+for any values A, B
+(SK B)A == A
+
+SK = \xyz.(xz yz) (\xy.x)
+   = \yz.(\wy.w z (yz))
+   = \yz.(\y.z yz)
+   = \yz.z
+
+K  is the combinator which takes two arguments and gives the first
+SK is the combinator which takes two arguments and gives the second
+
+note SK is a complete basis
+T[] is a transformation which converts an arbitrary lambda to combinator term
+1. T[\.x]   => x
+2. T[\.e a] => T[e] T[a]
+3. T[\x.e]  => K T[e]    (if x does not occur free in e)
+4. T[\x.x]  => I
+5. T[\x.\y.e] => T[\x.T[\y.e]]     (if x occurs free in E)
+6. T[\x.(e a) => S T[\x.e] T[\x.a] (if x occurs free in e or a)
+
+B (compositor) C (permutator) basis
+
+C f x y ≡ f . y x
+B f g x ≡ f . g . x
+
+B = S (K S) K
+C = S (S (K (S (K S) K) S) (K K))
+
+common combinators
+
+(see aviary)
+
+K  first, const
+SK second
+B  compose
+C  flip
+I  id
+Y  fixed point
+W  duplicator
